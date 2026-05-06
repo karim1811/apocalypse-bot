@@ -27,7 +27,7 @@ const citations = [
   { texte: "Le temps est proche.", source: "Apocalypse 1:3", type: "bible" },
   { texte: "Malheur, malheur, malheur aux habitants de la terre.", source: "Apocalypse 8:13", type: "bible" },
 
-  // FILMS DYSTOPIQUES ET SF
+  // FILMS
   { texte: "La vanite, definitivement mon peche prefere.", source: "L'Associe du Diable (1997)", type: "film" },
   { texte: "Dieu est un planque. Il te donne la vie, la liberte et le droit au bonheur... et puis il regarde.", source: "L'Associe du Diable (1997)", type: "film" },
   { texte: "Le plus grand tour que le diable ait jamais joue, c'est de convaincre le monde qu'il n'existait pas.", source: "Usual Suspects (1995)", type: "film" },
@@ -57,34 +57,31 @@ const citations = [
   { texte: "Dans ce jeu, la seule regle c'est qu'il n'y a pas de regles.", source: "Running Man (1987)", type: "film" },
   { texte: "Le gouvernement vous ment. Il vous a toujours menti.", source: "Running Man (1987)", type: "film" },
   { texte: "Ils vous donnent des jeux pour que vous oubliiez qu'ils vous volent votre liberte.", source: "Running Man (1987)", type: "film" },
-  { texte: "Ce n'est pas une faille dans le systeme. Le systeme est la faille.", source: "La Faille (2007)", type: "film" },
-  { texte: "Dans un monde sans loi, la loi du plus fort est la seule qui compte.", source: "Mad Max (1979)", type: "film" },
-  { texte: "Qui tue le dragon devient le dragon.", source: "Mad Max Fury Road (2015)", type: "film" },
   { texte: "La peur est le seul langage que le pouvoir comprend.", source: "V pour Vendetta (2005)", type: "film" },
   { texte: "Les gens ne devraient pas avoir peur de leur gouvernement. C'est le gouvernement qui devrait avoir peur du peuple.", source: "V pour Vendetta (2005)", type: "film" },
   { texte: "Les riches vivent dans les etoiles. Les pauvres meurent sur terre.", source: "Elysium (2013)", type: "film" },
   { texte: "Nous avons cree des dieux, et maintenant les dieux vont nous detruire.", source: "Prometheus (2012)", type: "film" },
   { texte: "Nous avons toujours defini nous-memes par notre capacite a surmonter l'impossible.", source: "Interstellar (2014)", type: "film" },
-  { texte: "Il n'y a pas de futur. Il n'y a que ce moment.", source: "Interstellar (2014)", type: "film" },
   { texte: "Le controle de l'information c'est le controle du monde.", source: "Enemy of the State (1998)", type: "film" },
-  { texte: "Tout ce que vous pouvez imaginer est reel.", source: "Pi (1998)", type: "film" },
+  { texte: "Dans un monde sans loi, la loi du plus fort est la seule qui compte.", source: "Mad Max (1979)", type: "film" },
+  { texte: "Qui tue le dragon devient le dragon.", source: "Mad Max Fury Road (2015)", type: "film" },
 
   // SERIES
   { texte: "Quand vous jouez au jeu des trones, vous gagnez ou vous mourez.", source: "Game of Thrones", type: "serie" },
   { texte: "Le pouvoir reside la ou les hommes croient qu'il reside.", source: "Game of Thrones", type: "serie" },
   { texte: "L'hiver vient.", source: "Game of Thrones", type: "serie" },
+  { texte: "Le chaos n'est pas un gouffre. Le chaos est une echelle.", source: "Game of Thrones", type: "serie" },
   { texte: "Nous sommes la mort qui marche.", source: "The Walking Dead", type: "serie" },
   { texte: "Toute cette technologie, et on est plus seuls que jamais.", source: "Black Mirror", type: "serie" },
   { texte: "Sous son oeil.", source: "The Handmaid's Tale", type: "serie" },
   { texte: "Blessed be the fruit.", source: "The Handmaid's Tale", type: "serie" },
+  { texte: "Le silence est une forme de consentement.", source: "The Handmaid's Tale", type: "serie" },
   { texte: "Ils nous ont pris tout ce qu'on avait. Maintenant on prend ce dont on a besoin.", source: "The Walking Dead", type: "serie" },
-  { texte: "Le chaos n'est pas un gouffre. Le chaos est une echelle.", source: "Game of Thrones", type: "serie" },
   { texte: "On ne choisit pas son epoque.", source: "Dark (Netflix)", type: "serie" },
   { texte: "Le commencement est la fin, et la fin est le commencement.", source: "Dark (Netflix)", type: "serie" },
   { texte: "Tout est lie. Tout est un.", source: "Dark (Netflix)", type: "serie" },
   { texte: "Nous vivons dans une societe.", source: "Seinfeld", type: "serie" },
   { texte: "Ils nous surveillent. Toujours.", source: "Black Mirror", type: "serie" },
-  { texte: "Le silence est une forme de consentement.", source: "The Handmaid's Tale", type: "serie" },
   { texte: "Les humains sont programmes comme nous. Ils ne le savent juste pas.", source: "Westworld", type: "serie" },
   { texte: "La liberte n'existe que si quelqu'un vous l'interdit.", source: "Westworld", type: "serie" },
   { texte: "Chaque like est une chaine invisible.", source: "Black Mirror", type: "serie" },
@@ -154,6 +151,21 @@ const hashtags = [
 const ECHEANCE = new Date('2030-12-21T00:00:00');
 const INTERVALLE = 4 * 60 * 60 * 1000;
 
+// File melangee pour eviter les repetitions
+let citationsRestantes = [];
+
+function melangerCitations() {
+  citationsRestantes = [...citations].sort(() => Math.random() - 0.5);
+  console.log("🔀 Citations melangees, nouveau cycle de " + citationsRestantes.length + " citations.");
+}
+
+function prochainesCitation() {
+  if (citationsRestantes.length === 0) {
+    melangerCitations();
+  }
+  return citationsRestantes.pop();
+}
+
 function getCompteARebours() {
   const maintenant = new Date();
   const diff = ECHEANCE - maintenant;
@@ -191,7 +203,7 @@ async function posterCitation() {
     }
   }
 
-  const citation = citations[Math.floor(Math.random() * citations.length)];
+  const citation = prochainesCitation();
   const emoji = emojis[citation.type] || "💬";
   const hashtag = hashtags[Math.floor(Math.random() * hashtags.length)];
   const rebours = getCompteARebours();
@@ -199,7 +211,7 @@ async function posterCitation() {
   const post = `${emoji} "${citation.texte}"\n\n- ${citation.source}\n\n${rebours}\n🗓️ Solstice 21/12/2030\n\n${hashtag}`;
 
   if (post.length > 300) {
-    console.warn("Post trop long, tentative avec une autre citation.");
+    console.warn("Post trop long, passage au suivant.");
     await posterCitation();
     return;
   }
@@ -209,9 +221,9 @@ async function posterCitation() {
     console.log("✅ Post publie a " + new Date().toLocaleTimeString());
     console.log(rebours);
   } catch (err) {
-    console.error("❌ Erreur lors de la publication : " + err.message);
+    console.error("❌ Erreur : " + err.message);
     if (err.message.includes('expired') || err.message.includes('logged') || err.message.includes('Token')) {
-      console.log("🔄 Token expire, tentative de reconnexion...");
+      console.log("🔄 Token expire, reconnexion...");
       isAgentLoggedIn = false;
       await loginAgent();
       if (isAgentLoggedIn) {
@@ -228,6 +240,7 @@ async function main() {
   console.log('🔮 Bot Apocalyptique demarre !');
   console.log('📅 Compte a rebours vers le Solstice du 21/12/2030');
   console.log(getCompteARebours());
+  melangerCitations();
   await loginAgent();
   if (isAgentLoggedIn) {
     console.log('\nPremier post en cours...\n');
