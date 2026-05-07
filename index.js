@@ -3,6 +3,7 @@ const { BskyAgent } = require('@atproto/api');
 
 const agent = new BskyAgent({ service: 'https://bsky.social' });
 let isAgentLoggedIn = false;
+let lastNotifSeenAt = null;
 
 const citations = [
   // BIBLE
@@ -135,24 +136,70 @@ const citations = [
 ];
 
 const emojis = { bible: "📖", film: "🎬", serie: "📺", livre: "📚", philosophie: "🧠" };
-const hashtags = [
-  "#FinDesTemps #Prophetie #Actualite",
-  "#Citation #Verite #Societe",
-  "#Bible #Philosophie #Eveil",
-  "#Cinema #Citation #2030",
-  "#Apocalypse #Solstice #Conscience",
-  "#Dystopie #Futur #Verite",
-  "#2030 #CompteRebours #Prophetie",
-  "#ScienceFiction #Anticipation #Reflexion",
-  "#Sagesse #Connaissance #Humanite",
-  "#PostApocalyptique #Survie #MondeDeDemain",
+
+// ─── HASHTAGS PAR CATÉGORIE ──────────────────────────────────────────────────
+const hashtagsParType = {
+  bible: [
+    "#Bible #Apocalypse #Prophetie #FinDesTemps #2030",
+    "#Revelation #Evangelie #Eschatologie #Jugement #Tribulation",
+    "#FoiChretienne #SignesDuTemps #CompteRebours #SolsticeSacre #Spiritualite",
+    "#Matthieu #Revelation #Verite #Eveil #DernierJour",
+  ],
+  film: [
+    "#Cinema #CinemaFR #FilmCulte #Citation #Dystopie",
+    "#SciFi #ScienceFiction #FilmPhilosophie #CinemaMondial #CineQuote",
+    "#MovieQuote #FilmAddict #CineClub #Anticipation #FuturSombre",
+    "#Dystopie #Matrix #BladeRunner #VPourVendetta #Orwell",
+  ],
+  serie: [
+    "#Serie #SerieTV #NetflixFR #HBOFrance #MustWatch",
+    "#GameOfThrones #BlackMirror #Westworld #Dark #HandmaidsTale",
+    "#BingeWatching #SerieAddict #TVShow #StreamingFR #SerieNoire",
+    "#Dystopie #SocieteSurveillance #FuturPossible #Fiction #Anticipation",
+  ],
+  livre: [
+    "#Livre #Citation #Litterature #Philosophie #Pensee",
+    "#Orwell #1984 #BigBrother #Camus #Nietzsche",
+    "#LivreFR #CultureFR #Lecture #Bookstagram #Bouquiner",
+    "#ScienceFiction #RomanDystopique #LectureObligatoire #PhraseduJour #Verite",
+  ],
+  philosophie: [
+    "#Philosophie #Pensee #Conscience #Eveil #Sagesse",
+    "#Nietzsche #Sartre #Platon #Socrate #Descartes",
+    "#PhilosophieFR #CultureGenerale #ReflexionPersonnelle #EspritCritique #Verite",
+    "#Existentialisme #PenseeDuJour #CitationPhilosophique #Marx #Jung",
+  ],
+};
+
+// Hashtags viraux communs ajoutés à chaque post
+const hashtagsCommuns = [
+  "#FinDesTemps #2030 #Solstice #CompteARebours",
+  "#Verite #Eveil #Conscience #Humanite",
+  "#Prophetie #FuturSombre #Reflexion #Society",
+  "#Pensee #Citation #Sagesse #MondeDeDemain",
+  "#WakeUp #TempsQuiPasse #Resistance #Liberte",
 ];
 
-const ECHEANCE = new Date('2030-12-21T00:00:00');
-const INTERVALLE = 4 * 60 * 60 * 1000;
+// Citations dystopiques film/serie pour répondre aux likes
+const citationsDystopiquesFilm = citations.filter(c => c.type === 'film' || c.type === 'serie');
+let citationsDystopiquesMelangees = [];
 
-// File melangee pour eviter les repetitions
+function melangerCitationsDystopiques() {
+  citationsDystopiquesMelangees = [...citationsDystopiquesFilm].sort(() => Math.random() - 0.5);
+}
+
+function prochaineCitationDystopique() {
+  if (citationsDystopiquesMelangees.length === 0) melangerCitationsDystopiques();
+  return citationsDystopiquesMelangees.pop();
+}
+
+const ECHEANCE = new Date('2030-12-21T00:00:00');
+const INTERVALLE = 4 * 60 * 60 * 1000;           // Post toutes les 4h
+const INTERVALLE_NOTIFS = 5 * 60 * 1000;          // Polling notifs toutes les 5min
+
 let citationsRestantes = [];
+// Set pour éviter de répondre deux fois au même like
+const likesDejaTraites = new Set();
 
 function melangerCitations() {
   citationsRestantes = [...citations].sort(() => Math.random() - 0.5);
@@ -160,9 +207,7 @@ function melangerCitations() {
 }
 
 function prochainesCitation() {
-  if (citationsRestantes.length === 0) {
-    melangerCitations();
-  }
+  if (citationsRestantes.length === 0) melangerCitations();
   return citationsRestantes.pop();
 }
 
@@ -177,6 +222,13 @@ function getCompteARebours() {
   const moisRestants = Math.floor((jours % 365) / 30);
   const joursRestants = jours % 30;
   return `⏳ ${ans} an(s), ${moisRestants} mois, ${joursRestants} jour(s), ${heures}h${minutes}m`;
+}
+
+function getHashtags(type) {
+  const parType = hashtagsParType[type] || hashtagsParType['philosophie'];
+  const tagType = parType[Math.floor(Math.random() * parType.length)];
+  const tagCommun = hashtagsCommuns[Math.floor(Math.random() * hashtagsCommuns.length)];
+  return `${tagType} ${tagCommun}`;
 }
 
 async function loginAgent() {
@@ -205,23 +257,23 @@ async function posterCitation() {
 
   const citation = prochainesCitation();
   const emoji = emojis[citation.type] || "💬";
-  const hashtag = hashtags[Math.floor(Math.random() * hashtags.length)];
+  const hashtags = getHashtags(citation.type);
   const rebours = getCompteARebours();
 
-  const post = `${emoji} "${citation.texte}"\n\n- ${citation.source}\n\n${rebours}\n🗓️ Solstice 21/12/2030\n\n${hashtag}`;
+  const post = `${emoji} "${citation.texte}"\n\n— ${citation.source}\n\n${rebours}\n🗓️ Solstice 21/12/2030\n\n${hashtags}`;
 
   if (post.length > 300) {
-    console.warn("Post trop long, passage au suivant.");
+    console.warn("⚠️ Post trop long (" + post.length + " chars), passage au suivant.");
     await posterCitation();
     return;
   }
 
   try {
     await agent.post({ text: post });
-    console.log("✅ Post publie a " + new Date().toLocaleTimeString());
+    console.log("✅ Post publie a " + new Date().toLocaleTimeString() + " | " + post.length + " chars");
     console.log(rebours);
   } catch (err) {
-    console.error("❌ Erreur : " + err.message);
+    console.error("❌ Erreur post : " + err.message);
     if (err.message.includes('expired') || err.message.includes('logged') || err.message.includes('Token')) {
       console.log("🔄 Token expire, reconnexion...");
       isAgentLoggedIn = false;
@@ -236,19 +288,112 @@ async function posterCitation() {
   }
 }
 
+// ─── RÉPONSE AUX LIKES (polling toutes les 5 min) ───────────────────────────
+async function traiterLikes() {
+  if (!isAgentLoggedIn) return;
+
+  try {
+    const response = await agent.listNotifications({ limit: 25 });
+    const notifs = response.data.notifications;
+
+    // Filtrer uniquement les nouveaux likes non encore traités
+    const nouveauxLikes = notifs.filter(n =>
+      n.reason === 'like' &&
+      !n.isRead &&
+      !likesDejaTraites.has(n.uri)
+    );
+
+    if (nouveauxLikes.length > 0) {
+      console.log(`💜 ${nouveauxLikes.length} nouveau(x) like(s) detecte(s) !`);
+    }
+
+    for (const notif of nouveauxLikes) {
+      likesDejaTraites.add(notif.uri);
+      await repondreAvecCitationDystopique(notif);
+      // Délai anti-spam entre chaque réponse
+      await new Promise(r => setTimeout(r, 3000));
+    }
+
+    // Marquer les notifs comme lues
+    if (notifs.length > 0) {
+      lastNotifSeenAt = new Date().toISOString();
+      await agent.updateSeenNotifications(lastNotifSeenAt);
+    }
+
+    // Nettoyer le Set si trop grand pour éviter les fuites mémoire
+    if (likesDejaTraites.size > 5000) {
+      const entries = [...likesDejaTraites];
+      entries.slice(0, 2500).forEach(e => likesDejaTraites.delete(e));
+      console.log("🧹 Cache des likes nettoye.");
+    }
+
+  } catch (err) {
+    console.error("❌ Erreur lecture notifications : " + err.message);
+    if (err.message.includes('expired') || err.message.includes('Token')) {
+      isAgentLoggedIn = false;
+      await loginAgent();
+    }
+  }
+}
+
+async function repondreAvecCitationDystopique(notif) {
+  try {
+    const citation = prochaineCitationDystopique();
+    const emoji = emojis[citation.type] || "🎬";
+
+    // Récupérer les infos du post original pour construire la réponse en fil
+    const postRef = notif.reasonSubject || notif.uri;
+    const parts = postRef.replace('at://', '').split('/');
+    const repo = parts[0];
+    const rkey = parts[2];
+
+    const postData = await agent.getPost({ repo, rkey });
+    const postCid = postData.cid;
+
+    const replyText = `${emoji} "${citation.texte}"\n— ${citation.source}\n\n#Citation #Dystopie #Eveil #2030`;
+
+    if (replyText.length > 300) return;
+
+    await agent.post({
+      text: replyText,
+      reply: {
+        root: { uri: postRef, cid: postCid },
+        parent: { uri: postRef, cid: postCid },
+      },
+    });
+
+    console.log(`💬 Reponse dystopique envoyee a @${notif.author?.handle || 'inconnu'}`);
+  } catch (err) {
+    console.error("❌ Erreur reponse like : " + err.message);
+  }
+}
+
 async function main() {
   console.log('🔮 Bot Apocalyptique demarre !');
   console.log('📅 Compte a rebours vers le Solstice du 21/12/2030');
   console.log(getCompteARebours());
+
   melangerCitations();
+  melangerCitationsDystopiques();
+
+  // Ignorer les vieilles notifs au démarrage
+  lastNotifSeenAt = new Date().toISOString();
+
   await loginAgent();
+
   if (isAgentLoggedIn) {
     console.log('\nPremier post en cours...\n');
     await posterCitation();
   } else {
     console.error("Le bot n'a pas pu se connecter au demarrage.");
   }
+
+  // Post toutes les 4 heures
   setInterval(posterCitation, INTERVALLE);
+
+  // Polling des likes toutes les 5 minutes
+  setInterval(traiterLikes, INTERVALLE_NOTIFS);
+  console.log('🔔 Surveillance des likes activee (polling toutes les 5 min)');
 }
 
 main();
